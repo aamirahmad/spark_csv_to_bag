@@ -52,7 +52,7 @@ include_directories(
 
 
 
-add_executable(spark_csv_to_bag src/flightdata_to_bag.cpp.cpp)
+add_executable(spark_csv_to_bag src/flightdata_to_bag.cpp)
 target_link_libraries(spark_csv_to_bag ${catkin_LIBRARIES} )
 
 add_executable(overlay_on_image_stream src/overlay_on_image_stream.cpp)

@@ -184,7 +184,7 @@ void image_callback(const sensor_msgs::ImageConstPtr& msg)
     if(shouldSaveImages)
     {
         vector<int> compression_params;
-        compression_params.push_back(CV_IMWRITE_JPEG_QUALITY);
+        compression_params.push_back(1);
         compression_params.push_back(95);        
         sprintf(imageFileName,"%s/img%05d.jpg",imagePath,msg->header.seq),
         cv::imwrite(imageFileName,cv_ptr->image,compression_params);       

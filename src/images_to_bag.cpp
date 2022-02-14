@@ -119,7 +119,7 @@ int main(int argc, char **argv)
         header.stamp = imageMsgTime;
         header.frame_id = "spark_cam_image";
         header.seq = imageID;
-        image = cv::imread(filename, CV_LOAD_IMAGE_COLOR);
+        image = cv::imread(filename, IMREAD_COLOR);
         sensor_msgs::ImagePtr img_msg = cv_bridge::CvImage(header, "bgr8", image).toImageMsg();        
   
         printf("We are here \n");       
