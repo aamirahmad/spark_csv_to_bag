@@ -69,10 +69,10 @@ int main(int argc, char **argv)
 
 
     // Initialize the bag file to read
-    io::CSVReader<10> in(argv[1]);
+    io::CSVReader<11> in(argv[1]);
     in.read_header(io::ignore_extra_column,
-                   "time(millisecond)","datetime(utc)","latitude","longitude","altitude_above_seaLevel(feet)","compass_heading(degrees)","pitch(degrees)","roll(degrees)","gimbal_heading(degrees)","gimbal_pitch(degrees)");
-    std::string FlightMode, Time_text; int size; double speed;
+                   "time(millisecond)","datetime(utc)","latitude","longitude","altitude_above_seaLevel(feet)","compass_heading(degrees)","pitch(degrees)","roll(degrees)","gimbal_heading(degrees)","gimbal_pitch(degrees)","message");
+    std::string FlightMode, Time_text, message; int size; double speed;
     int Id;  int Time_milliSecs;
     double Time_seconds,
     Latitude,Longitude,Altitude_meters,Altitude_feet, 
@@ -101,8 +101,9 @@ int main(int argc, char **argv)
     bool FirstChangeInSecondOccured = false;
       
     while(in.read_row(Time_milliSecs,Time_text,Latitude,Longitude,Altitude_feet,yaw, 
-    pitch,roll,cam_yaw,cam_pitch))
+    pitch,roll,cam_yaw,cam_pitch,message))
     {
+        printf("This happens again Lat= %f Long=%f message =%s\n",Latitude,Longitude,message.c_str());
         // do stuff with the data
         //parse the date time example: 2016/02/26 21:16:27.280 
         sscanf(Time_text.c_str(),"%d-%d-%d %d:%d:%d",&year,&month,&day,&hour,&min,&sec);
@@ -132,28 +133,29 @@ int main(int argc, char **argv)
                     /* now modify the timeinfo to the given date: */
                     timeinfo->tm_year   = year - 1900;
                     timeinfo->tm_mon    = month - 1;    //months since January - [0,11]
-                    timeinfo->tm_mday   = day;          //day of the month - [1,31] 
-                    if(summerTime)
+                    timeinfo->tm_mday   = day;          //day of the month - [1,31]
+                    //Don't do this as the data is already in UTC
+                    /*if(summerTime)
                     {
                         printf("-----------------------------Please note that you have selected summer time = 1 ----------------------------\n");
                         timeinfo->tm_hour   = hour+1;         //hours since midnight - [0,23]
-                    }
-                    else
-                        timeinfo->tm_hour   = hour;         //hours since midnight - [0,23]    
+                    }*/
+                    timeinfo->tm_hour   = hour;         //hours since midnight - [0,23]    
                     timeinfo->tm_min    = min;          //minutes after the hour - [0,59]
                     timeinfo->tm_sec    = sec;          //seconds after the minute - [0,59]
 
                     /* call mktime: create unix time stamp from timeinfo struct */
                     unix_time_base_for_data = timegm ( timeinfo );                      
                     offsetMilSec = Time_milliSecs; // this saves the offset which needs to be deducted every time.            
-                    printf("Only once this happens\n");
+                    printf("This happens only once\n");
                     printf("Date time year = %d , month %d, day %d, hour %d , min %d, sec %d, \n",year,month,day,hour,min,sec);
                     printf("unix_time_base_for_data = %ld \n",unix_time_base_for_data + ((Time_milliSecs-offsetMilSec)/1000));
                 }
             }
             
             if(FirstChangeInSecondOccured)
-            {        
+            {       
+                
                 // Use unix_time_base_for_data and add the milliseconds now. We forget the full date-time info from each row since it is redundant now as we have the millisecond info 
 
                 if(count>0)
@@ -180,7 +182,7 @@ int main(int argc, char **argv)
                 
                 gpsPosition.latitude = Latitude;
                 gpsPosition.longitude = Longitude;
-                gpsPosition.altitude = Altitude_feet*0.3048;
+                gpsPosition.altitude = Altitude_feet*0.3048; //feet to meter
                 
                 gpsPosition.header.seq = count;
                 gpsPosition.header.stamp = messageTime;
@@ -193,7 +195,7 @@ int main(int argc, char **argv)
                 //setRPY expects angles in radians between -pi to pi.
                 if(yaw>180)
                     yaw=yaw-360;
-                sparkQuaternion.setRPY(roll*(M_PI/180), -cam_pitch*(M_PI/180), cam_yaw*(M_PI/180)); // Pitch down is negative in the CSV files (DJI Spark's reference frame)
+                sparkQuaternion.setRPY(roll*(M_PI/180), -pitch*(M_PI/180), cam_yaw*(M_PI/180)); // Pitch down is negative in the CSV files (DJI Spark's reference frame)
                 sparkQuaternion.normalize();
                 tf::quaternionTFToMsg(sparkQuaternion, quat_msg);
                 sparkOrientation.orientation = quat_msg;
@@ -227,7 +229,7 @@ int main(int argc, char **argv)
     // File reading the image id and timestamps
     FILE *imageFileLogHandler; long int imageID=0, pts_image=0, image_sec=0, imagensec=0;
     float image_time=0.0;
-    imageFileLogHandler = fopen("video_to_images/image_id_timestamp.log","r"); 
+    imageFileLogHandler = fopen("video_to_images/image_id_timestamp_302.log","r"); 
     ros::Time imageMsgTime;
     sensor_msgs::CameraInfo sparkCamInfo;
     
@@ -242,9 +244,20 @@ int main(int argc, char **argv)
     timeinfo->tm_year   = year - 1900;
     timeinfo->tm_mon    = month - 1;    //months since January - [0,11]
     timeinfo->tm_mday   = day;          //day of the month - [1,31] 
-    timeinfo->tm_hour   = hour;         //hours since midnight - [0,23]
+    //timeinfo->tm_hour   = hour;         //hours since midnight - [0,23]
     timeinfo->tm_min    = min;          //minutes after the hour - [0,59]
     timeinfo->tm_sec    = sec;          //seconds after the minute - [0,59]
+    
+                    if(summerTime)
+                    {
+                        printf("-----------------------------Please note that you have selected summer time = 1 , so it is being converted to UTC ----------------------------\n");
+                        timeinfo->tm_hour   = hour-2;         //hours since midnight - [0,23]
+                    }
+                    else
+                    {
+                        printf("-----------------------------Please note that you have selected summer time = 1 , so it is being converted to UTC ----------------------------\n");
+                        timeinfo->tm_hour   = hour-1;         //hours since midnight - [0,23]
+                    }
 
     /* call mktime: create unix time stamp from timeinfo struct */
     unix_time_base_for_image = timegm ( timeinfo );  
@@ -276,7 +289,7 @@ int main(int argc, char **argv)
         
         //Create image filename, e.g., fr00001.jpg
 
-        sprintf(filename,"video_to_images/images/fr%05ld.png",imageID);
+        sprintf(filename,"video_to_images/images_302/fr%05ld.jpg",imageID);
 
         
         //printf("image file is %s\n",filename);
@@ -285,7 +298,7 @@ int main(int argc, char **argv)
         header.frame_id = "dji_spark_red_camera";
         header.seq = imageID;
         image = cv::imread(filename, IMREAD_COLOR);
-        sensor_msgs::ImagePtr img_msg = cv_bridge::CvImage(header, "bgr8", image).toImageMsg();    
+        sensor_msgs::CompressedImagePtr img_msg = cv_bridge::CvImage(header, "bgr8", image).toCompressedImageMsg();    
         
         
         sparkCamInfo.header = header;
@@ -303,7 +316,7 @@ int main(int argc, char **argv)
 
 
         bag.write ("/dji_spark_red/camera_info", imageMsgTime, sparkCamInfo);
-        bag.write ("/dji_spark_red/image_raw", imageMsgTime, img_msg);        
+        bag.write ("/dji_spark_red/image_raw/compressed", imageMsgTime, img_msg);        
         printf("processed file fr%ld.jpg AT pts_image = %ld time = %ld.%f\n",imageID,pts_image,unix_time_base_for_image+(int)image_time,1000000000*(image_time-(int)image_time));
     }
 
