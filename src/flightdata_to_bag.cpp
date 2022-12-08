@@ -195,7 +195,7 @@ int main(int argc, char **argv)
                 //setRPY expects angles in radians between -pi to pi.
                 if(yaw>180)
                     yaw=yaw-360;
-                sparkQuaternion.setRPY(roll*(M_PI/180), -pitch*(M_PI/180), cam_yaw*(M_PI/180)); // Pitch down is negative in the CSV files (DJI Spark's reference frame)
+                sparkQuaternion.setRPY(roll*(M_PI/180), pitch*(M_PI/180), cam_yaw*(M_PI/180)); // Pitch down is negative in the CSV files (DJI Spark's reference frame)
                 sparkQuaternion.normalize();
                 tf::quaternionTFToMsg(sparkQuaternion, quat_msg);
                 sparkOrientation.orientation = quat_msg;
@@ -204,7 +204,7 @@ int main(int argc, char **argv)
                 gimbalOrientation.header.seq = count;
                 gimbalOrientation.header.stamp = messageTime;
                 gimbalOrientation.header.frame_id = "dji_spark_red_camera"; 
-                gimbalQuaternion.setRPY(0, -cam_pitch*(M_PI/180), 0); // Pitch down is negative in the CSV files (DJI Spark's reference frame)
+                gimbalQuaternion.setRPY(0, cam_pitch*(M_PI/180), 0); // Pitch down is negative in the CSV files (DJI Spark's reference frame)
                 gimbalQuaternion.normalize();
                 tf::quaternionTFToMsg(gimbalQuaternion, gimbal_quat_msg);
                 gimbalOrientation.orientation = gimbal_quat_msg;        
@@ -229,7 +229,7 @@ int main(int argc, char **argv)
     // File reading the image id and timestamps
     FILE *imageFileLogHandler; long int imageID=0, pts_image=0, image_sec=0, imagensec=0;
     float image_time=0.0;
-    imageFileLogHandler = fopen("video_to_images/image_id_timestamp_302.log","r"); 
+    imageFileLogHandler = fopen("/home/aamir/Data/CSVs_converted_from_logs/Mavic_1/image_id_timestamp.log","r"); 
     ros::Time imageMsgTime;
     sensor_msgs::CameraInfo sparkCamInfo;
     
@@ -289,7 +289,7 @@ int main(int argc, char **argv)
         
         //Create image filename, e.g., fr00001.jpg
 
-        sprintf(filename,"video_to_images/images_302/fr%05ld.jpg",imageID);
+        sprintf(filename,"/home/aamir/Data/CSVs_converted_from_logs/Mavic_1/images/fr%05ld.jpg",imageID);
 
         
         //printf("image file is %s\n",filename);
@@ -302,21 +302,21 @@ int main(int argc, char **argv)
         
         
         sparkCamInfo.header = header;
-        sparkCamInfo.height = 1080;
-        sparkCamInfo.width = 1920;
+        sparkCamInfo.height = 2160;
+        sparkCamInfo.width = 3840;
         sparkCamInfo.distortion_model="plumb_bob";
-        sparkCamInfo.D = {0.068662, -0.220181, 0.002021, -0.001481, 0.000000};
-        sparkCamInfo.K = { 1847.028178, 0,           965.064957, 
-                    0,         1857.924092,   488.596017,
-                    0,         0,           1 };
-        sparkCamInfo.P = { 1851.899048, 0,          962.935811, 0,
-                    0,         1869.809570,   489.795644,    0,
-                    0,         0,           1, 0 };
+        sparkCamInfo.D = {0.011779, 0.024192, -0.009612, -0.002351, 0.000000};
+        sparkCamInfo.K = {3162.61167,    0.0     , 1891.98047,
+            0.0     , 3212.89799, 1034.2038 ,
+            0.0     ,    0.0     ,    1.0     };
+        sparkCamInfo.P = { 3213.05981,    0.0     , 1883.69943,    0.0     ,
+            0.0     , 3249.98999, 1013.46757,    0.0     ,
+            0.0     ,    0.0     ,    1.0     ,    0.0    };
 
 
 
-        bag.write ("/dji_spark_red/camera_info", imageMsgTime, sparkCamInfo);
-        bag.write ("/dji_spark_red/image_raw/compressed", imageMsgTime, img_msg);        
+        bag.write ("/dji/camera_info", imageMsgTime, sparkCamInfo);
+        bag.write ("/dji/image_raw/compressed", imageMsgTime, img_msg);        
         printf("processed file fr%ld.jpg AT pts_image = %ld time = %ld.%f\n",imageID,pts_image,unix_time_base_for_image+(int)image_time,1000000000*(image_time-(int)image_time));
     }
 
